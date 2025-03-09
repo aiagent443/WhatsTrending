@@ -127,6 +127,67 @@ Make it engaging and shareable while maintaining originality."""
         print(f"Error generating script: {str(e)}")
         return None
 
+def analyze_generated_video(video_info):
+    """Analyze a generated video before posting to ensure it aligns with trending patterns."""
+    try:
+        # Get current trending shorts for comparison
+        analyzer = YouTubeShortsAnalyzer(os.getenv('YOUTUBE_API_KEY'))
+        trending_shorts = analyzer.get_trending_shorts(max_results=5)
+        
+        # Analyze the video content
+        analysis_prompt = f"""Compare this generated video with current trending patterns:
+
+Video Details:
+Title: {video_info.get('title', '')}
+Description: {video_info.get('description', '')}
+Duration: {video_info.get('duration', '')}
+Style: {video_info.get('style', '')}
+
+Current Trending Patterns:
+{json.dumps([{
+    'title': short['title'],
+    'views': short['views'],
+    'engagement': short['likes'] / short['views'] if short['views'] > 0 else 0
+} for short in trending_shorts[:3]], indent=2)}
+
+Provide a detailed analysis addressing:
+1. Alignment with current trends
+2. Potential engagement prediction
+3. Suggested optimizations before posting
+4. Best posting time based on trend data
+5. Recommended hashtags and keywords"""
+
+        response = client.chat.completions.create(
+            model="gpt-4-turbo-preview",
+            messages=[
+                {"role": "system", "content": "You are a YouTube Shorts optimization expert who understands viral trends and audience engagement."},
+                {"role": "user", "content": analysis_prompt}
+            ]
+        )
+        
+        analysis_result = {
+            'analysis': response.choices[0].message.content,
+            'trending_comparison': trending_shorts[:3],
+            'optimization_needed': False,  # Will be set to True if major changes are recommended
+            'recommended_changes': []
+        }
+        
+        # Parse the analysis to determine if optimization is needed
+        if any(keyword in response.choices[0].message.content.lower() 
+               for keyword in ['recommend', 'suggest', 'should', 'could improve', 'optimize']):
+            analysis_result['optimization_needed'] = True
+            # Extract recommendations from the analysis
+            recommendations = [line.strip() for line in response.choices[0].message.content.split('\n')
+                            if any(keyword in line.lower() 
+                                for keyword in ['recommend', 'suggest', 'should', 'could', 'optimize'])]
+            analysis_result['recommended_changes'] = recommendations
+        
+        return analysis_result
+        
+    except Exception as e:
+        print(f"Error analyzing generated video: {str(e)}")
+        return None
+
 def main():
     """Main execution function."""
     # Get API key from environment variable

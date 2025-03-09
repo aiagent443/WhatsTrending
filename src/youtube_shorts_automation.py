@@ -150,26 +150,88 @@ class ContentPipeline:
     
     def _generate_script(self, video_data: Dict) -> str:
         """
-        Generate a script based on the analyzed video.
+        Generate a script based on the analyzed video, formatted for Vadoo.
         
         Args:
             video_data (Dict): Video metadata and analysis
             
         Returns:
-            str: Generated script content
+            str: Generated script content formatted for Vadoo
         """
-        # Implement your script generation logic here
-        # This is a placeholder implementation
-        return f"""
-Title: {video_data['title']}
+        # Extract keywords from title and description
+        keywords = video_data['title'].split()[:5]
+        
+        # Format the script in Vadoo's preferred structure
+        script = {
+            "title": video_data['title'],
+            "style": "youtube_shorts",
+            "scenes": [
+                {
+                    "scene": "Opening Hook",
+                    "duration": "3",
+                    "voiceover": f"Hey! Want to know about {keywords[0] if keywords else 'this'}?",
+                    "visual": "Dynamic zoom-in transition with text overlay",
+                    "text_overlay": video_data['title']
+                },
+                {
+                    "scene": "Main Content",
+                    "duration": "45",
+                    "voiceover": f"Let's dive into {video_data['title']}. This trending topic is taking over social media!",
+                    "visual": "Engaging visuals with smooth transitions",
+                    "text_overlay": "Key points from content",
+                    "background": "Upbeat background music"
+                },
+                {
+                    "scene": "Call to Action",
+                    "duration": "12",
+                    "voiceover": "If you enjoyed this content, make sure to like and follow for more!",
+                    "visual": "Outro animation with social links",
+                    "text_overlay": "Follow for more content!",
+                    "background": "Fade out music"
+                }
+            ],
+            "settings": {
+                "aspect_ratio": "9:16",
+                "total_duration": "60",
+                "style": "energetic",
+                "music_style": "upbeat",
+                "caption_style": "modern"
+            }
+        }
+        
+        # Convert to Vadoo's expected string format
+        formatted_script = f"""
+[Video Settings]
+Title: {script['title']}
+Style: {script['style']}
+Duration: {script['settings']['total_duration']} seconds
+Aspect Ratio: {script['settings']['aspect_ratio']}
 
-Script:
-1. Hook: Attention-grabbing opening based on {video_data['title']}
-2. Main Content: Engaging explanation or demonstration
-3. Call to Action: Like and follow for more content
+[Scenes]
 
-Keywords: {', '.join(video_data['title'].split()[:5])}
-        """.strip()
+1. Opening Hook ({script['scenes'][0]['duration']}s)
+Visual: {script['scenes'][0]['visual']}
+Text: {script['scenes'][0]['text_overlay']}
+VO: {script['scenes'][0]['voiceover']}
+
+2. Main Content ({script['scenes'][1]['duration']}s)
+Visual: {script['scenes'][1]['visual']}
+Text: {script['scenes'][1]['text_overlay']}
+VO: {script['scenes'][1]['voiceover']}
+Background: {script['scenes'][1]['background']}
+
+3. Call to Action ({script['scenes'][2]['duration']}s)
+Visual: {script['scenes'][2]['visual']}
+Text: {script['scenes'][2]['text_overlay']}
+VO: {script['scenes'][2]['voiceover']}
+Background: {script['scenes'][2]['background']}
+
+[Additional Settings]
+Music Style: {script['settings']['music_style']}
+Caption Style: {script['settings']['caption_style']}
+Energy Level: {script['settings']['style']}
+"""
+        return formatted_script.strip()
     
     async def create_vadoo_video(self, script: str) -> Dict[str, Union[bool, str]]:
         """
